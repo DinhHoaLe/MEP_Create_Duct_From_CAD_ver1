@@ -39,7 +39,7 @@ namespace IFCInfo
         {
             Name = "IfcObjectViewer";
             Background = Brushes.White;
-            BorderBrush = IFCInfoWindow.Brush("#DFE6EE");
+            BorderBrush = IFCInfoWindow.Brush("#DDD6CE");
             BorderThickness = new Thickness(1);
             CornerRadius = new CornerRadius(10);
             Padding = new Thickness(12);
@@ -52,16 +52,16 @@ namespace IFCInfo
                 "M19,7 L19,3 15,3 M19,3 L15,7 M19,3 C15,-1 7,0 4,6 C1,12 5,20 12,20 C16,20 19,18 21,15");
             reset.Width=36; reset.Height=34; reset.MinHeight=34; reset.Margin=new Thickness(6,0,0,0);
             reset.Click+=(s,e)=>ResetView(); headerActions.Children.Add(reset);
-            var title=IFCInfoWindow.Text("Viewer · Nguồn IFC",18,"#102A50");
+            var title=IFCInfoWindow.Text("Viewer · Nguồn IFC",18,"#37322B");
             title.VerticalAlignment=VerticalAlignment.Center; header.Children.Add(title);
-            var host = new Grid { Background = IFCInfoWindow.Brush("#F4F7FA"), ClipToBounds=true };
+            var host = new Grid { Background = IFCInfoWindow.Brush("#F5F2EE"), ClipToBounds=true };
             layout.Children.Add(host);
             viewport = new Viewport3D { ClipToBounds=true }; host.Children.Add(viewport);
             camera = new PerspectiveCamera { FieldOfView=35,UpDirection=new Vector3D(0,0,1) };
             viewport.Camera=camera;
             scene=new Model3DGroup();
             viewport.Children.Add(new ModelVisual3D { Content=scene });
-            status=IFCInfoWindow.Text("Chọn một dòng để xem trước đối tượng.",13,"#60738A");
+            status=IFCInfoWindow.Text("Chọn một dòng để xem trước đối tượng.",13,"#716B63");
             status.HorizontalAlignment=HorizontalAlignment.Center; status.VerticalAlignment=VerticalAlignment.Bottom;
             status.TextAlignment=TextAlignment.Center; status.Margin=new Thickness(12);
             status.Background=new SolidColorBrush(Color.FromArgb(225,255,255,255)); host.Children.Add(status);
@@ -69,11 +69,11 @@ namespace IFCInfo
                 IsHitTestVisible=false,Margin=new Thickness(24) };
             var emptyBody=new StackPanel { HorizontalAlignment=HorizontalAlignment.Center };
             emptyIcon=new System.Windows.Shapes.Path { Width=72,Height=72,Stretch=Stretch.Uniform,
-                Stroke=IFCInfoWindow.Brush("#6D9DD5"),StrokeThickness=1.8,Fill=Brushes.Transparent,
+                Stroke=IFCInfoWindow.Brush("#90805C"),StrokeThickness=1.8,Fill=Brushes.Transparent,
                 StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,StrokeLineJoin=PenLineJoin.Round,
                 HorizontalAlignment=HorizontalAlignment.Center };
             emptyBody.Children.Add(emptyIcon);
-            emptyMessage=IFCInfoWindow.Text("",14,"#60738A");
+            emptyMessage=IFCInfoWindow.Text("",14,"#716B63");
             emptyMessage.TextAlignment=TextAlignment.Center; emptyMessage.Margin=new Thickness(0,14,0,0);
             emptyMessage.MaxWidth=280; emptyBody.Children.Add(emptyMessage);
             emptyState.Children.Add(emptyBody); host.Children.Add(emptyState);

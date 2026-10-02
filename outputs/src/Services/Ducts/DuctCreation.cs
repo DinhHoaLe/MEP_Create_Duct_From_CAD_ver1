@@ -46,11 +46,13 @@ namespace IFCInfo
                         try
                         {
                             if (item.ExistingId==0 && existing.Contains(item.Key)) throw new InvalidOperationException("Nguồn đã được tạo trước đó.");
-                            long id=0;
+                            long id=0, resolvedSystem=0;
                             RunTransaction(doc,"IFC - "+item.Source.ElementId,()=>
                             {
                                 var duct=CreateOrUpdate(doc,item,request); DuctRevision.Save(duct,item,run); id=duct.Id.Number();
+                                resolvedSystem=duct.get_Parameter(BuiltInParameter.RBS_DUCT_SYSTEM_TYPE_PARAM).AsElementId().Number();
                             });
+                            request.SystemTypes[item.GroupKey]=resolvedSystem;
                             existing.Add(item.Key); successful[id]=item; row.TargetId=id.ToString(); row.Success=true;
                             row.Status=item.ExistingId>0 ? "Đã cập nhật" : "Đã tạo";
                         }
@@ -114,8 +116,14 @@ namespace IFCInfo
                     End=new[] { d.Line.GetEndPoint(1).X,d.Line.GetEndPoint(1).Y,d.Line.GetEndPoint(1).Z } });
             var overlap=DuctCoverage.Check(new[] { item.Start.X,item.Start.Y,item.Start.Z },new[] { item.End.X,item.End.Y,item.End.Z },others,1.0/304.8);
             if (overlap.Ids.Count>0) throw new InvalidOperationException("Đường tim chồng duct ID "+string.Join(",",overlap.Ids)+"; không tạo/cập nhật chồng ống.");
-            string key=DuctRequest.SystemKey(item.Round,item.Source.SystemType);
-            var system=ElementIds.Create(request.SystemTypes[key]); var type=ElementIds.Create(item.Round?request.RoundTypeId:request.RectangularTypeId);
+            string key=item.GroupKey;
+            var system=ResolveSystem(doc,request,key);
+            long typeId;
+            if (!request.DuctTypes.TryGetValue(key,out typeId)) typeId=item.Round?request.RoundTypeId:request.RectangularTypeId;
+            var type=ElementIds.Create(typeId);
+            var ductType=doc.GetElement(type) as DuctType;
+            var expectedShape=item.Round?ConnectorProfileType.Round:item.Oval?ConnectorProfileType.Oval:ConnectorProfileType.Rectangular;
+            if (ductType==null || ductType.Shape!=expectedShape) throw new InvalidOperationException("Duct Type không đúng tiết diện "+item.ShapeName+".");
             var levels=new FilteredElementCollector(doc).OfClass(typeof(Level)).Cast<Level>().OrderBy(l=>l.ProjectElevation).ToList();
             long mapped;
             var level=request.Levels.TryGetValue(item.LevelKey??"Không có Level nguồn",out mapped) && mapped>0 ? doc.GetElement(ElementIds.Create(mapped)) as Level
@@ -176,6 +184,33 @@ namespace IFCInfo
             }
             var e=new Entity(schema); e.Set(schema.GetField("SourceKey"),key); e.Set(schema.GetField("SystemName"),row.SystemName??""); e.Set(schema.GetField("SystemType"),row.SystemType??""); duct.SetEntity(e);
             DuctExistenceChecker.RecordMapping(duct,key,row.SystemType,system);
+        }
+        private static ElementId ResolveSystem(Document doc,DuctRequest request,string key)
+        {
+            NewDuctSystem proposed;
+            if (!request.NewSystems.TryGetValue(key,out proposed))
+            {
+                long id;
+                if (!request.SystemTypes.TryGetValue(key,out id) || !(doc.GetElement(ElementIds.Create(id)) is MechanicalSystemType))
+                    throw new InvalidOperationException("System Type đích không còn tồn tại.");
+                return ElementIds.Create(id);
+            }
+            var template=proposed.TemplateId>0 ? doc.GetElement(ElementIds.Create(proposed.TemplateId)) as MechanicalSystemType : null;
+            MEPSystemClassification classification;
+            if (proposed.TemplateId>0 && template==null) throw new InvalidOperationException("Hệ thống mẫu đã bị xóa.");
+            if (template!=null) classification=template.SystemClassification;
+            else if (!Enum.TryParse(proposed.Classification,out classification) ||
+                !new[] { MEPSystemClassification.SupplyAir,MEPSystemClassification.ReturnAir,MEPSystemClassification.ExhaustAir,MEPSystemClassification.OtherAir }.Contains(classification))
+                throw new InvalidOperationException("Chọn phân loại hợp lệ cho hệ thống mới.");
+            var existing=new FilteredElementCollector(doc).OfClass(typeof(MechanicalSystemType)).Cast<MechanicalSystemType>()
+                .FirstOrDefault(t=>string.Equals(t.Name,proposed.Name,StringComparison.OrdinalIgnoreCase));
+            if (existing!=null)
+            {
+                if (existing.SystemClassification!=classification) throw new InvalidOperationException("Tên hệ thống đã tồn tại nhưng khác phân loại: "+proposed.Name);
+                return existing.Id;
+            }
+            // Executed inside the duct transaction: failed ducts do not leave orphan system types.
+            return template!=null ? template.Duplicate(proposed.Name).Id : MechanicalSystemType.Create(doc,classification,proposed.Name).Id;
         }
         private static void SetId(Duct d,BuiltInParameter name,ElementId value)
         {

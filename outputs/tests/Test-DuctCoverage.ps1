@@ -39,4 +39,13 @@ Check @($oval) 'Sai kích thước' $true
 $offset = Segment 1 0 10
 $offset.Start = @(0,1,0); $offset.End = @(10,1,0)
 Check @($offset) 'Chưa tồn tại' $false
+$flat = Segment 1 0 10
+$flat.Oval = $true
+$result = [IFCInfo.DuctCoverage]::CheckDetails(@(0,0,0),@(10,0,0),[IFCInfo.DuctCoverage+Segment[]]@($flat),(1/304.8),2,1,0,7,$null,$true)
+if ($result.Status -ne 'Khớp hoàn toàn') { throw 'Matching oval should be recognized' }
+$script:checks++
+Check @($flat) 'Sai kích thước' $true
+$result = [IFCInfo.DuctCoverage]::CheckDetails(@(0,0,0),@(10,0,0),[IFCInfo.DuctCoverage+Segment[]]@((Segment 1 0 10)),(1/304.8),2,1,0,7,$null,$true)
+if ($result.Status -ne 'Sai kích thước') { throw 'Rectangle must not match oval with the same dimensions' }
+$script:checks++
 Write-Output "$script:checks checks passed."

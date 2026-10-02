@@ -12,6 +12,7 @@
         public double WidthMm { get; set; }
         public double HeightMm { get; set; }
         public double DiameterMm { get; set; }
+        public string ProfileShape { get; set; }
         public string GeometryError { get; set; }
         public System.Collections.Generic.List<IfcPropertyValue> Properties { get; set; } = new System.Collections.Generic.List<IfcPropertyValue>();
     }

@@ -13,8 +13,8 @@ namespace IFCInfo
             Title=caption; Width=1050; Height=750; MaxHeight=SystemParameters.WorkArea.Height;
             WindowStartupLocation=WindowStartupLocation.CenterOwner; Background=UiDesign.Background;
             FontFamily=new System.Windows.Media.FontFamily("Segoe UI"); FontSize=14;
-            var root=new DockPanel { Margin=new Thickness(20),Background=Background }; Content=root;
-            var summary=IFCInfoWindow.Text(rolledBack ? "Đã hoàn tác toàn bộ lượt" : "Thành công: "+rows.Count(r=>r.Success)+" thao tác · Lỗi/bỏ qua: "+rows.Count(r=>!r.Success),22,"#102A50");
+            var root=new DockPanel { Margin=new Thickness(20),Background=Background }; UiDesign.SetContent(this, root);
+            var summary=IFCInfoWindow.Text(rolledBack ? "Đã hoàn tác toàn bộ lượt" : "Thành công: "+rows.Count(r=>r.Success)+" thao tác · Lỗi/bỏ qua: "+rows.Count(r=>!r.Success),22,"#37322B");
             DockPanel.SetDock(summary,Dock.Top); root.Children.Add(summary);
             var buttons=new WrapPanel { Margin=new Thickness(0,12,0,0) }; DockPanel.SetDock(buttons,Dock.Bottom); root.Children.Add(buttons);
             var feedback=IFCInfoWindow.Text("",13,"#9A5B12"); DockPanel.SetDock(feedback,Dock.Bottom); root.Children.Add(feedback);
@@ -32,6 +32,7 @@ namespace IFCInfo
             choose.Click+=(s,e)=> { select(); Close(); };
             var close=IFCInfoWindow.Button("Đóng",true); buttons.Children.Add(close); close.Click+=(s,e)=>Close();
             var grid=new DataGrid { ItemsSource=rows,AutoGenerateColumns=false,IsReadOnly=true,CanUserAddRows=false,Margin=new Thickness(0,14,0,0),MinRowHeight=34,ColumnHeaderHeight=36 };
+            UiDesign.StyleTable(grid);
             var textStyle=new Style(typeof(TextBlock));
             textStyle.Setters.Add(new Setter(TextBlock.TextWrappingProperty,TextWrapping.Wrap));
             textStyle.Setters.Add(new Setter(TextBlock.MarginProperty,new Thickness(6)));

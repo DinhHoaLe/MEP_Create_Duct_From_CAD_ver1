@@ -91,4 +91,12 @@ foreach ($kind in @('IFCPIPESEGMENT','IFCCABLECARRIERSEGMENT')) {
     $product=(Read-Sample $fixture).Products['duct']
     Assert (!$product.GeometryError -and $product.DiameterMm -eq 100 -and $product.LengthMm -eq 1000) "$kind circular extrusion"
 }
+$oval = $sample.Replace('IFCRECTANGLEPROFILEDEF(.AREA.,$,$,200.,100.)', 'IFCROUNDEDRECTANGLEPROFILEDEF(.AREA.,$,$,200.,100.,50.)')
+$d = (Read-Sample $oval).Ducts['duct']
+Assert (!$d.GeometryError -and $d.ProfileShape -eq 'Oval' -and $d.WidthMm -eq 200 -and $d.HeightMm -eq 100) 'Flat oval source profile'
+$rounded = $oval.Replace('200.,100.,50.)', '200.,100.,20.)')
+Assert ([bool](Read-Sample $rounded).Ducts['duct'].GeometryError) 'Do not convert rounded rectangles to flat oval'
+$ellipse = $sample.Replace('IFCRECTANGLEPROFILEDEF(.AREA.,$,$,200.,100.)', 'IFCELLIPSEPROFILEDEF(.AREA.,$,$,100.,50.)')
+$d = (Read-Sample $ellipse).Ducts['duct']
+Assert ($d.ProfileShape -eq 'Oval' -and [bool]$d.GeometryError) 'Identify ellipse but reject lossy conversion'
 Write-Output "PASS: $script:checks assertions"

@@ -13,6 +13,7 @@ namespace IFCInfo
             public double Width, Height, Diameter;
             public long SystemTypeId;
             public bool UnsupportedShape;
+            public bool Oval;
             public double[] WidthAxis;
         }
         public sealed class Result
@@ -21,13 +22,13 @@ namespace IFCInfo
             public bool FullyCovered;
         }
         public static Result CheckDetails(double[] start, double[] end, IEnumerable<Segment> ducts,
-            double tolerance, double width, double height, double diameter, long? expectedSystemTypeId, double[] widthAxis = null)
+            double tolerance, double width, double height, double diameter, long? expectedSystemTypeId, double[] widthAxis = null, bool oval = false)
         {
             var segments = ducts.ToList();
             var result = Check(start, end, segments, tolerance);
             if (!result.FullyCovered) return result;
             var overlapping = segments.Where(d => result.Ids.Contains(d.Id)).ToList();
-            bool wrongSize = overlapping.Any(d => d.UnsupportedShape || (diameter > 0
+            bool wrongSize = overlapping.Any(d => d.UnsupportedShape || d.Oval != oval || (diameter > 0
                 ? d.Diameter <= 0 || Math.Abs(d.Diameter - diameter) > tolerance
                 : d.Diameter > 0 || Math.Abs(d.Width - width) > tolerance || Math.Abs(d.Height - height) > tolerance));
             bool wrongSystem = expectedSystemTypeId.HasValue && overlapping.Any(d => d.SystemTypeId != expectedSystemTypeId.Value);

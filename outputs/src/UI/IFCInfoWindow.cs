@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.ComponentModel;
@@ -125,14 +125,14 @@ namespace IFCInfo
             FontFamily = new FontFamily("Segoe UI");
             FontSize = 14;
             Background = UiDesign.Background;
-            Foreground = Brush("#102A50");
+            Foreground = Brush("#37322B");
             UseLayoutRounding = true;
             TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
             SourceInitialized += OnSourceInitialized;
             StateChanged += OnWindowStateChanged;
             Closed += OnWindowClosed;
             var root = new DockPanel { Background = Background };
-            Content = root;
+            UiDesign.SetContent(this, root);
             var header = new Grid { Margin = new Thickness(38, 34, 38, 28) };
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(112) });
             header.ColumnDefinitions.Add(new ColumnDefinition());
@@ -141,9 +141,9 @@ namespace IFCInfo
             var titles = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(titles, 1);
             header.Children.Add(titles);
-            var heading = Text("Chọn link và Category", 30, "#0C244B");
+            var heading = Text("Chọn link và Category", 30, "#37322B");
             heading.FontWeight = FontWeights.Bold;
-            var subtitle = Text("Bước 1 · Chọn nguồn để tiếp tục", 17, "#617BA2");
+            var subtitle = Text("Bước 1 · Chọn nguồn để tiếp tục", 17, "#716B63");
             subtitle.Margin = new Thickness(0, 8, 0, 0);
             titles.Children.Add(heading);
             titles.Children.Add(subtitle);
@@ -162,7 +162,7 @@ namespace IFCInfo
             DockPanel.SetDock(footer, Dock.Bottom);
             root.Children.Add(footer);
             var status = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 8, 16, 8) };
-            feedback = Text("Chọn IFC link và Category để tiếp tục.", 14, "#647FA6");
+            feedback = Text("Chọn IFC link và Category để tiếp tục.", 14, "#716B63");
             feedback.MaxWidth = 310;
             status.Children.Add(feedback);
             Grid.SetColumn(status, 1);
@@ -200,14 +200,14 @@ namespace IFCInfo
                 Child = card,
                 Background = Brushes.White,
                 CornerRadius = new CornerRadius(16),
-                BorderBrush = Brush("#E0EAF7"),
+                BorderBrush = Brush("#DDD6CE"),
                 BorderThickness = new Thickness(1),
                 Effect = UiDesign.Shadow()
             });
-            var sourceTitle = Text("Thông tin nguồn", 22, "#102A50");
+            var sourceTitle = Text("Thông tin nguồn", 22, "#37322B");
             sourceTitle.FontWeight = FontWeights.SemiBold;
             card.Children.Add(sourceTitle);
-            var description = Text("Chọn IFC link và Category nguồn, sau đó chọn Category / Type đích trong Revit.", 15, "#647FA6");
+            var description = Text("Chọn IFC link và Category nguồn, sau đó chọn Category / Type đích trong Revit.", 15, "#716B63");
             description.Margin = new Thickness(0, 8, 0, 0);
             card.Children.Add(description);
             var linkBox = UiDesign.Field(card, "IFC link", "Chọn link nguồn từ mô hình IFC", "Chọn IFC link...", false);
@@ -260,7 +260,8 @@ namespace IFCInfo
                     return;
                 try
                 {
-                    LoadCategory(SelectedCategory);
+                    using (LoadingWindow.ShowWhile(this, "Đang đọc dữ liệu IFC", "Đọc thuộc tính, hình dạng và đối chiếu phần tử trong Revit…"))
+                        LoadCategory(SelectedCategory);
                 }
                 catch (Exception ex) { feedback.Text = "Không đọc được Category: " + ex.Message; return; }
                 heading.Text = SelectedCategory.Name;
@@ -272,7 +273,7 @@ namespace IFCInfo
                 next.Visibility = Visibility.Collapsed;
                 back.Visibility = Visibility.Visible;
                 zoomSource.Visibility=Visibility.Visible;
-                create.Content = "Tạo family →";
+                create.Content = CanCreateDucts ? "Thiết lập Duct →" : "Tạo family →";
                 create.Visibility = CanCreateDucts || CanReplaceCategory ? Visibility.Visible : Visibility.Collapsed;
                 feedback.Text = "";
             };
@@ -348,11 +349,11 @@ namespace IFCInfo
                 CanUserReorderColumns = false,
                 HeadersVisibility = DataGridHeadersVisibility.Column,
                 GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-                HorizontalGridLinesBrush = Brush("#E6ECF2"),
+                HorizontalGridLinesBrush = Brush("#DDD6CE"),
                 Background = Brushes.White,
                 RowBackground = Brushes.White,
-                AlternatingRowBackground = Brush("#F5F8FC"),
-                BorderBrush = Brush("#DFE6EE"),
+                AlternatingRowBackground = Brush("#F5F2EE"),
+                BorderBrush = Brush("#DDD6CE"),
                 BorderThickness = new Thickness(1),
                 Height = 240,
                 MinRowHeight = 34,
@@ -364,6 +365,7 @@ namespace IFCInfo
                 EnableRowVirtualization = true,
                 EnableColumnVirtualization = true
             };
+            UiDesign.StyleTable(table);
             var cellText = new Style(typeof(TextBlock));
             cellText.Setters.Add(new Setter(TextBlock.MarginProperty, new Thickness(8, 6, 8, 6)));
             cellText.Setters.Add(new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap));
@@ -398,7 +400,7 @@ namespace IFCInfo
                     statusStyle.Triggers.Add(error);
                 }
                 var missing = new DataTrigger { Binding = new System.Windows.Data.Binding("DuctExistence"), Value = "Chưa tồn tại" };
-                missing.Setters.Add(new Setter(TextBlock.ForegroundProperty, Brush("#637FA5")));
+                missing.Setters.Add(new Setter(TextBlock.ForegroundProperty, Brush("#716B63")));
                 statusStyle.Triggers.Add(missing);
                 table.Columns.Add(new DataGridTextColumn
                 {
@@ -411,7 +413,10 @@ namespace IFCInfo
             }
             foreach (var column in new[] {
                 new { Header = "Element ID", Property = "ElementId", Width = 95.0 },
-                new { Header = "Phần tử", Property = "Name", Width = 340.0 } })
+                new { Header = "Phần tử", Property = "Name", Width = 220.0 },
+                new { Header = "System Type", Property = "SystemType", Width = 150.0 },
+                new { Header = "System Name", Property = "SystemName", Width = 150.0 },
+                new { Header = "Shape", Property = "Shape", Width = 100.0 } })
             {
                 table.Columns.Add(new DataGridTextColumn
                 {
@@ -419,6 +424,7 @@ namespace IFCInfo
                     IsReadOnly = true,
                     Binding = new System.Windows.Data.Binding(column.Property),
                     Width = new DataGridLength(column.Width,DataGridLengthUnitType.Star),
+                    MinWidth = column.Property == "Name" ? 160 : column.Property == "Shape" ? 100 : 120,
                     ElementStyle = cellText
                 });
             }
@@ -578,11 +584,11 @@ namespace IFCInfo
                 VerticalContentAlignment=VerticalAlignment.Center,
                 Padding=new Thickness(10,0,10,0), Margin=new Thickness(0,3,8,3),
                 ToolTip="Tìm theo Element ID hoặc tên phần tử",
-                BorderBrush=Brush("#DCE4ED"), Background=Brush("#FFFFFF")
+                BorderBrush=Brush("#DDD6CE"), Background=Brush("#FFFFFF")
             };
             var searchLayout=new Grid();
             searchLayout.Children.Add(search);
-            var placeholder=Text("Tìm kiếm phần tử IFC…",14,"#60738A");
+            var placeholder=Text("Tìm kiếm phần tử IFC…",14,"#716B63");
             placeholder.Margin=new Thickness(12,0,0,0);
             placeholder.VerticalAlignment=VerticalAlignment.Center;
             placeholder.IsHitTestVisible=false;
@@ -679,17 +685,16 @@ namespace IFCInfo
             var button = new Button
             {
                 Content = caption,
-                Padding = new Thickness(24, 13, 24, 13),
-                FontSize = 16,
+                Padding = new Thickness(20, 10, 20, 10),
+                FontSize = 13,
                 FontWeight = FontWeights.SemiBold,
-                MinHeight = 48,
+                MinHeight = 40,
                 Margin = new Thickness(6, 3, 0, 3),
                 Cursor = System.Windows.Input.Cursors.Hand,
-                Background = primary ? (Brush)new LinearGradientBrush(Color.FromRgb(30, 137, 255), Color.FromRgb(12, 111, 236), 90) : Brush("#F7FAFF"),
-                Foreground = primary ? Brushes.White : Brush("#17335B"),
-                Effect = UiDesign.Shadow(primary ? .18 : .06),
-                BorderBrush = Brush(primary ? "#176BBD" : "#DCE4ED"),
-                BorderThickness = new Thickness(1)
+                Background = primary ? Brush("#62543C") : Brushes.White,
+                Foreground = primary ? Brushes.White : Brush("#37322B"),
+                BorderBrush = Brush(primary ? "#6F6044" : "#DDD6CE"),
+                BorderThickness = new Thickness(primary ? 0 : 1)
             };
             var border = new FrameworkElementFactory(typeof(Border));
             border.SetValue(Border.CornerRadiusProperty, new CornerRadius(9));
@@ -703,7 +708,7 @@ namespace IFCInfo
             border.AppendChild(presenter);
             var template = new ControlTemplate(typeof(Button)) { VisualTree = border };
             var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-            hover.Setters.Add(new Setter(UIElement.OpacityProperty, 0.85));
+            hover.Setters.Add(new Setter(Control.BackgroundProperty, Brush(primary ? "#514631" : "#EEE8E1")));
             template.Triggers.Add(hover);
             var disabled = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
             disabled.Setters.Add(new Setter(UIElement.OpacityProperty, 0.45));
@@ -717,7 +722,7 @@ namespace IFCInfo
             var icon = new System.Windows.Shapes.Path
             {
                 Data = Geometry.Parse(geometry),
-                Stroke = Brush("#17335B"),
+                Stroke = Brush("#37322B"),
                 StrokeThickness = 1.8,
                 StrokeStartLineCap = PenLineCap.Round,
                 StrokeEndLineCap = PenLineCap.Round,
@@ -741,8 +746,8 @@ namespace IFCInfo
 
         private static void SetIconButtonActive(Button button, bool active)
         {
-            button.Background = Brush(active ? "#E0EEFF" : "#F7FAFF");
-            button.BorderBrush = Brush(active ? "#147BFA" : "#DCE4ED");
+            button.Background = Brush(active ? "#E8E2DA" : "#F5F2EE");
+            button.BorderBrush = Brush(active ? "#6F6044" : "#DDD6CE");
         }
 
         private void ZoomToIfcSource(AirTerminalRow row)

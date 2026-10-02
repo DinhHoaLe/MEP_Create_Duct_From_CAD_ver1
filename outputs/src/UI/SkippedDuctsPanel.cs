@@ -28,7 +28,7 @@ namespace IFCInfo
             DockPanel.SetDock(badge, Dock.Right); header.Children.Add(badge);
             var title = IFCInfoWindow.Text("Các đoạn bỏ qua", 18, "#694B23");
             title.FontWeight = FontWeights.SemiBold; header.Children.Add(title); body.Children.Add(header);
-            var hint = IFCInfoWindow.Text("Các đoạn dưới đây sẽ không được tạo trong lượt này. Chọn ô và nhấn Ctrl+C để sao chép.", 13, "#738098");
+            var hint = IFCInfoWindow.Text("Các đoạn dưới đây sẽ không được tạo trong lượt này. Chọn ô và nhấn Ctrl+C để sao chép.", 13, "#716B63");
             hint.Margin = new Thickness(0,7,0,14); body.Children.Add(hint);
             var rows = issues.Select(issue => {
                 string text = issue ?? "";
@@ -42,22 +42,22 @@ namespace IFCInfo
                 CanUserAddRows = false, CanUserDeleteRows = false, CanUserReorderColumns = false,
                 HeadersVisibility = DataGridHeadersVisibility.Column, RowHeaderWidth = 0,
                 GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-                HorizontalGridLinesBrush = IFCInfoWindow.Brush("#E8EDF5"), BorderBrush = IFCInfoWindow.Brush("#E3EAF3"),
-                Background = Brushes.White, RowBackground = Brushes.White, AlternatingRowBackground = IFCInfoWindow.Brush("#F7FAFE"),
+                HorizontalGridLinesBrush = IFCInfoWindow.Brush("#DDD6CE"), BorderBrush = IFCInfoWindow.Brush("#DDD6CE"),
+                Background = Brushes.White, RowBackground = Brushes.White, AlternatingRowBackground = IFCInfoWindow.Brush("#F5F2EE"),
                 MinRowHeight = 46, ColumnHeaderHeight = 38, FontSize = 14,
                 MaxHeight = 300, MinHeight = 90, SelectionUnit = DataGridSelectionUnit.CellOrRowHeader,
                 ClipboardCopyMode = DataGridClipboardCopyMode.IncludeHeader,
                 EnableRowVirtualization = true, EnableColumnVirtualization = true };
             var headerStyle = new Style(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
-            headerStyle.Setters.Add(new Setter(Control.BackgroundProperty, IFCInfoWindow.Brush("#EDF3FA")));
-            headerStyle.Setters.Add(new Setter(Control.ForegroundProperty, IFCInfoWindow.Brush("#4C6485")));
+            headerStyle.Setters.Add(new Setter(Control.BackgroundProperty, IFCInfoWindow.Brush("#E8E2DA")));
+            headerStyle.Setters.Add(new Setter(Control.ForegroundProperty, IFCInfoWindow.Brush("#716B63")));
             headerStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(12,8,12,8)));
             headerStyle.Setters.Add(new Setter(Control.FontWeightProperty, FontWeights.SemiBold));
             table.ColumnHeaderStyle = headerStyle;
             var textStyle = new Style(typeof(TextBlock));
             textStyle.Setters.Add(new Setter(TextBlock.MarginProperty, new Thickness(12,10,12,10)));
             textStyle.Setters.Add(new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap));
-            textStyle.Setters.Add(new Setter(TextBlock.ForegroundProperty, IFCInfoWindow.Brush("#344D6C")));
+            textStyle.Setters.Add(new Setter(TextBlock.ForegroundProperty, IFCInfoWindow.Brush("#37322B")));
             textStyle.Setters.Add(new Setter(TextBlock.ToolTipProperty, new Binding("Reason")));
             table.Columns.Add(new DataGridTextColumn { Header = "Element ID", Binding = new Binding("ElementId"), Width = 115, ElementStyle = textStyle });
             table.Columns.Add(new DataGridTextColumn { Header = "Lý do bỏ qua", MinWidth = 240, Binding = new Binding("Reason"), Width = new DataGridLength(1, DataGridLengthUnitType.Star), ElementStyle = textStyle });

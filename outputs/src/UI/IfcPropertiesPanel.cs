@@ -19,13 +19,13 @@ namespace IFCInfo
         {
             Name = "IfcPropertiesPanel";
             Background = System.Windows.Media.Brushes.White;
-            BorderBrush = IFCInfoWindow.Brush("#DFE6EE");
+            BorderBrush = IFCInfoWindow.Brush("#DDD6CE");
             BorderThickness = new Thickness(1); CornerRadius = new CornerRadius(10); Padding = new Thickness(12);
             var layout = new DockPanel(); Child = layout;
-            var heading = IFCInfoWindow.Text("Properties · Nguồn IFC", 18, "#102A50");
+            var heading = IFCInfoWindow.Text("Properties · Nguồn IFC", 18, "#37322B");
             DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);
             heading.Margin = new Thickness(0,0,0,8);
-            selectionCount = IFCInfoWindow.Text("Total: 0 / 0",12,"#60738A");
+            selectionCount = IFCInfoWindow.Text("Total: 0 / 0",12,"#716B63");
             selectionCount.Name="IfcSelectionTotal";
             selectionCount.Margin=new Thickness(0,0,0,8);
             properties = new DataGrid { Name="IfcPropertyValues", AutoGenerateColumns=false, IsReadOnly=true,
@@ -46,8 +46,8 @@ namespace IFCInfo
    <ControlTemplate TargetType='GroupItem'>
     <Expander IsExpanded='True' Margin='0,2,0,0'>
      <Expander.Header>
-      <Border Background='#E8E8E8' BorderBrush='#D1D1D1' BorderThickness='0,0,0,1' Padding='5,3'>
-       <TextBlock Text='{Binding Name}' FontWeight='SemiBold' Foreground='#303030'/>
+      <Border Background='#E8E2DA' BorderBrush='#DDD6CE' BorderThickness='0,0,0,1' Padding='5,3'>
+       <TextBlock Text='{Binding Name}' FontWeight='SemiBold' Foreground='#37322B'/>
       </Border>
      </Expander.Header>
      <ItemsPresenter/>

@@ -315,7 +315,12 @@ namespace IFCInfo
             if (Math.Abs(direction[2]) < 1 - 1e-8)
                 throw new NotSupportedException("Chưa hỗ trợ tiết diện đùn xiên.");
             Entity profile = Get(Ref(solid.At(0)));
-            if (profile.Kind != "IFCCIRCLEPROFILEDEF" && profile.Kind != "IFCRECTANGLEPROFILEDEF")
+            if (profile.Kind == "IFCELLIPSEPROFILEDEF")
+            {
+                result.ProfileShape = "Oval";
+                throw new NotSupportedException("Tiết diện ellipse IFC không tương đương oval phẳng của Revit; cần chuyển đổi tiết diện nguồn trước khi tạo.");
+            }
+            if (profile.Kind != "IFCCIRCLEPROFILEDEF" && profile.Kind != "IFCRECTANGLEPROFILEDEF" && profile.Kind != "IFCROUNDEDRECTANGLEPROFILEDEF")
                 throw new NotSupportedException("Chưa hỗ trợ tiết diện " + profile.Kind);
             // Include solid and profile rotations before measuring nonuniform scaling.
             double[] solidAxes = AxisRotation(Ref(solid.At(1)));
@@ -332,11 +337,20 @@ namespace IFCInfo
                 if (Math.Abs(sx - sy) > Math.Max(sx, sy) * 1e-8)
                     throw new NotSupportedException("Phép co giãn biến tiết diện tròn thành oval; chưa hỗ trợ.");
                 result.DiameterMm = 2 * Number(profile.At(3)) * sx * mm.Value;
+                result.ProfileShape = "Round";
             }
-            else if (profile.Kind == "IFCRECTANGLEPROFILEDEF")
+            else if (profile.Kind == "IFCRECTANGLEPROFILEDEF" || profile.Kind == "IFCROUNDEDRECTANGLEPROFILEDEF")
             {
                 result.WidthMm = Number(profile.At(3)) * sx * mm.Value;
                 result.HeightMm = Number(profile.At(4)) * sy * mm.Value;
+                result.ProfileShape = "Rectangular";
+                if (profile.Kind == "IFCROUNDEDRECTANGLEPROFILEDEF")
+                {
+                    if (Math.Abs(sx-sy)>Math.Max(sx,sy)*1e-8 ||
+                        Math.Abs(Number(profile.At(5))*2-Math.Min(Number(profile.At(3)),Number(profile.At(4))))>1e-7)
+                        throw new NotSupportedException("Chỉ hỗ trợ oval phẳng với bán kính bo bằng nửa cạnh nhỏ.");
+                    result.ProfileShape = "Oval";
+                }
             }
             else
                 throw new NotSupportedException("Chưa hỗ trợ tiết diện " + profile.Kind);

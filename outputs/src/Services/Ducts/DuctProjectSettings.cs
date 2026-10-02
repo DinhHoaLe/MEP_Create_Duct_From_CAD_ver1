@@ -13,6 +13,7 @@ namespace IFCInfo
     {
         public long RoundTypeId, RectangularTypeId;
         public List<DuctSettingEntry> Systems = new List<DuctSettingEntry>();
+        public List<DuctSettingEntry> DuctTypes = new List<DuctSettingEntry>();
         public List<DuctSettingEntry> Levels = new List<DuctSettingEntry>();
         public List<DuctSettingEntry> Worksets = new List<DuctSettingEntry>();
     }
@@ -40,7 +41,8 @@ namespace IFCInfo
             var data = Load(doc);
             if (request.RoundTypeId > 0) data.RoundTypeId = request.RoundTypeId;
             if (request.RectangularTypeId > 0) data.RectangularTypeId = request.RectangularTypeId;
-            Merge(data.Systems, request.SystemTypes); Merge(data.Levels, request.Levels); Merge(data.Worksets, request.Worksets);
+            Merge(data.Systems, request.SystemTypes.Where(p=>p.Value>0).ToDictionary(p=>p.Key,p=>p.Value)); Merge(data.Levels, request.Levels); Merge(data.Worksets, request.Worksets);
+            Merge(data.DuctTypes, request.DuctTypes);
             using (var writer = new StringWriter(CultureInfo.InvariantCulture))
             {
                 new XmlSerializer(typeof(DuctSettingsData)).Serialize(writer, data);

@@ -20,21 +20,21 @@ namespace IFCInfo
             string sourceCategoryName = null, Func<string,long,List<ReplacementTypeOption>> loadFamily = null)
         {
             Title = "Đặt phần tử native theo IFC · Revit 2023";
-            Width = 780;
+            Width = 1100;
             Height = 700;
-            MinWidth = 580;
+            MinWidth = 900;
             MinHeight = 460;
             MaxHeight = SystemParameters.WorkArea.Height;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             ShowInTaskbar = false;
             FontFamily = new FontFamily("Segoe UI");
             FontSize = 14;
-            Background = IFCInfoWindow.Brush("#F3F6FA");
+            Background = IFCInfoWindow.Brush("#F5F2EE");
             var root = new DockPanel { Background = Background };
-            Content = root;
-            var header = new Border { Background = IFCInfoWindow.Brush("#132B46"), Padding = new Thickness(24) };
+            UiDesign.SetContent(this, root);
+            var header = new Border { Background = IFCInfoWindow.Brush("#37322B"), Padding = new Thickness(24) };
             var head = new StackPanel();
-            head.Children.Add(IFCInfoWindow.Text("BƯỚC 3 · ĐẶT PHẦN TỬ REVIT", 11, "#9DBCD8"));
+            head.Children.Add(IFCInfoWindow.Text("BƯỚC 3 · ĐẶT PHẦN TỬ REVIT", 11, "#B3A491"));
             var title = IFCInfoWindow.Text("Chọn Family / Type cùng Category IFC", 24, "#FFFFFF");
             title.Margin = new Thickness(0, 8, 0, 0);
             head.Children.Add(title);
@@ -58,12 +58,11 @@ namespace IFCInfo
             DockPanel.SetDock(footer, Dock.Bottom);
             root.Children.Add(footer);
 
-            var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-            root.Children.Add(scroll);
+            var options = new StackPanel { Margin = new Thickness(24) };
             var body = new StackPanel { Margin = new Thickness(24) };
-            scroll.Content = body;
-            body.Children.Add(IFCInfoWindow.Text("Đã chọn " + rows.Count + " phần tử từ IFC link", 18, "#172B45"));
-            body.Children.Add(IFCInfoWindow.Text("IFC được giữ làm tham chiếu. Chỉ các dòng bạn đã chọn được tạo mới.", 13, "#526880"));
+            root.Children.Add(UiDesign.SettingsColumns(options, body));
+            body.Children.Add(IFCInfoWindow.Text("Đã chọn " + rows.Count + " phần tử từ IFC link", 18, "#37322B"));
+            body.Children.Add(IFCInfoWindow.Text("IFC được giữ làm tham chiếu. Chỉ các dòng bạn đã chọn được tạo mới.", 13, "#716B63"));
             Label(body,"CATEGORY THEO IFC · CỐ ĐỊNH");
             var categories=new List<CategoryOption> { new CategoryOption { Id=sourceCategoryId,
                 Name=sourceCategoryName??types.FirstOrDefault(t=>t.CategoryId==sourceCategoryId)?.CategoryName??"Chưa xác định Category nguồn" } };
@@ -84,9 +83,10 @@ namespace IFCInfo
             load.Name="LoadPlacementFamily";
             load.Visibility=loadFamily==null ? Visibility.Collapsed : Visibility.Visible;
             body.Children.Add(load);
-            var placement = IFCInfoWindow.Text("Chọn type đã load trong model Revit chính.", 12, "#526880");
+            var placement = IFCInfoWindow.Text("Chọn type đã load trong model Revit chính.", 12, "#716B63");
             placement.Margin = new Thickness(0, 8, 0, 0);
             body.Children.Add(placement);
+            body = options;
             Label(body, "LEVEL THAM CHIẾU TRONG MODEL CHÍNH");
             var levelBox = new ComboBox { ItemsSource = levels, MinHeight = 36 };
             body.Children.Add(levelBox);
@@ -106,7 +106,7 @@ namespace IFCInfo
             var notes = IFCInfoWindow.Text("Family điểm dùng điểm đặt nguồn hoặc tâm khung bao; góc xoay nhập thêm quanh Z/pháp tuyến host. " +
                 "Family cần host sẽ yêu cầu chọn mặt phẳng; Adaptive yêu cầu chọn các điểm điều khiển cho từng nguồn. Family theo đường có thể chọn 2 điểm nếu không đọc được đường nguồn.\n\n" +
                 "Duct / Pipe / Conduit / Cable Tray thẳng dùng đường tim và kích thước IFC. Chiều dài mới giữ đầu thứ nhất và đổi đầu còn lại. Hình học cong, rỗng hoặc phức tạp chưa đọc được sẽ báo lỗi; không tự đoán kích thước. Duct Fitting dùng family cùng Category đã chọn.\n\n" +
-                "Kết quả sau đặt có IFC Pset/Qto (nếu có), lưu kèm phần tử và có thể xuất CSV. Đây là dữ liệu nguồn, không tự biến thành shared parameter của Revit.", 13, "#526880");
+                "Kết quả sau đặt có IFC Pset/Qto (nếu có), lưu kèm phần tử và có thể xuất CSV. Đây là dữ liệu nguồn, không tự biến thành shared parameter của Revit.", 13, "#716B63");
             notes.Margin = new Thickness(0, 20, 0, 0);
             body.Children.Add(notes);
             Action validate = () =>
@@ -196,7 +196,7 @@ namespace IFCInfo
         }
         private static TextBlock Label(StackPanel body, string label)
         {
-            var text = IFCInfoWindow.Text(label, 11, "#60738A");
+            var text = IFCInfoWindow.Text(label, 11, "#716B63");
             text.Margin = new Thickness(0, 20, 0, 8);
             body.Children.Add(text);
             return text;

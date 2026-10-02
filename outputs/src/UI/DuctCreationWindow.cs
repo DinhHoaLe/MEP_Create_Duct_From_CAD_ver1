@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -14,21 +14,22 @@ namespace IFCInfo
         }
         public DuctCreationWindow(List<DuctPlanItem> items, List<string> issues,
             List<DuctChoice> roundTypes, List<DuctChoice> rectangularTypes, List<DuctChoice> systems,
-            List<DuctChoice> levels, List<DuctChoice> worksets, DuctSettingsData saved, bool updating = false)
+            List<DuctChoice> levels, List<DuctChoice> worksets, DuctSettingsData saved, bool updating = false, List<DuctChoice> ovalTypes = null)
         {
             Title = updating ? "Xem trước cập nhật Duct từ IFC" : "Bước 3 · Tạo Duct từ IFC";
-            Width = 900;
+            Width = 1200;
             Height = 690;
-            MinWidth = 620;
+            MinWidth = 900;
             MinHeight = 440;
             MaxHeight = SystemParameters.WorkArea.Height;
+            MaxWidth = SystemParameters.WorkArea.Width;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             Background = UiDesign.Background;
             UseLayoutRounding = true;
             FontFamily = new System.Windows.Media.FontFamily("Segoe UI");
             FontSize = 14;
             var root = new DockPanel { Margin = new Thickness(28), Background = Background };
-            Content = root;
+            UiDesign.SetContent(this, root);
             var footer = new StackPanel { Margin = new Thickness(0, 14, 0, 0) };
             DockPanel.SetDock(footer, Dock.Bottom);
             root.Children.Add(footer);
@@ -47,53 +48,56 @@ namespace IFCInfo
             header.ColumnDefinitions.Add(new ColumnDefinition());
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var titlePanel = new StackPanel(); header.Children.Add(titlePanel);
-            var title = IFCInfoWindow.Text(updating ? "Cập nhật Duct từ IFC" : "Thiết lập tạo Duct", 27, "#102A50");
+            var title = IFCInfoWindow.Text(updating ? "Cập nhật Duct từ IFC" : "Thiết lập tạo Duct", 27, "#37322B");
             title.FontWeight = FontWeights.Bold; titlePanel.Children.Add(title);
-            titlePanel.Children.Add(IFCInfoWindow.Text("Bước 3 · Kiểm tra và tạo ống", 14, "#637FA5"));
+            titlePanel.Children.Add(IFCInfoWindow.Text("Bước 3 · Kiểm tra và tạo ống", 14, "#716B63"));
             var steps = new ContentControl { Content = UiDesign.Steps(3), Margin = new Thickness(12,0,0,0) };
             Grid.SetColumn(steps,1); header.Children.Add(steps);
             header.SizeChanged += (s,e) => steps.Visibility = header.ActualWidth < 780 ? Visibility.Collapsed : Visibility.Visible;
             DockPanel.SetDock(header,Dock.Top); root.Children.Add(header);
             var body = new StackPanel();
-            root.Children.Add(new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
-            var summary = new Border { Background = IFCInfoWindow.Brush("#E7F2FF"), CornerRadius = new CornerRadius(10), Padding = new Thickness(18,12,18,12), Margin = new Thickness(0,0,0,16) };
-            summary.Child = IFCInfoWindow.Text((updating ? "Có thay đổi: " : "Sẵn sàng tạo: ") + items.Count + " đoạn     ·     Bỏ qua  " + issues.Count + " đoạn", 16, "#1367C1");
-            body.Children.Add(summary);
-            ComboBox round = null, rectangular = null;
-            var mapping = new Dictionary<string, ComboBox>();
-            foreach (bool isRound in new[] { true, false })
+            var columns = new Grid();
+            columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(340), MinWidth = 280 });
+            columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(25) });
+            columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 420 });
+            root.Children.Add(columns);
+            var leftScroll = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Padding = new Thickness(0,0,10,0) };
+            columns.Children.Add(leftScroll);
+            var divider = new Border { Width = 1, Background = IFCInfoWindow.Brush("#DDD6CE"), Margin = new Thickness(12,0,12,0) };
+            Grid.SetColumn(divider,1); columns.Children.Add(divider);
+            var groupsBody = new StackPanel();
+            var rightScroll = new ScrollViewer { Content = groupsBody, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Padding = new Thickness(0,0,8,0) };
+            Grid.SetColumn(rightScroll,2); columns.Children.Add(rightScroll);
+            body.Children.Add(IFCInfoWindow.Text("LEVEL & TÙY CHỌN CHUNG", 16, "#37322B"));
+            groupsBody.Children.Add(IFCInfoWindow.Text("ÁNH XẠ THEO SHAPE × SYSTEM TYPE", 18, "#37322B"));
+            groupsBody.Children.Add(IFCInfoWindow.Text("Mỗi nhóm dùng Duct Type và System Type riêng. Mở nhóm để thiết lập; bỏ chọn các nguồn chưa muốn tạo ở bảng phía dưới.",13,"#716B63"));
+            var summary = new Border { Background = IFCInfoWindow.Brush("#E8E2DA"), CornerRadius = new CornerRadius(10), Padding = new Thickness(18,12,18,12), Margin = new Thickness(0,0,0,16) };
+            summary.Child = IFCInfoWindow.Text((updating ? "Có thay đổi: " : "Sẵn sàng tạo: ") + items.Count + " đoạn     ·     Bỏ qua  " + issues.Count + " đoạn", 16, "#6F6044");
+            groupsBody.Children.Add(summary);
+            var editors = new Dictionary<string, DuctGroupEditor>();
+            var groupSearch = new TextBox { MinHeight=34, Padding=new Thickness(8), Margin=new Thickness(0,12,0,12), ToolTip="Tìm nhóm theo Shape hoặc System Type" };
+            groupsBody.Children.Add(IFCInfoWindow.Text("Tìm nhóm Shape / System Type",12,"#716B63"));
+            groupsBody.Children.Add(groupSearch);
+            groupSearch.TextChanged += (s,e) =>
             {
-                var groupItems = items.Where(item => item.Round == isRound).ToList();
-                if (groupItems.Count == 0) continue;
-                var settings = new StackPanel { Margin = new Thickness(22,18,22,22) };
-                body.Children.Add(new Border { Child = settings, Background = System.Windows.Media.Brushes.White,
-                    CornerRadius = new CornerRadius(14), BorderBrush = IFCInfoWindow.Brush("#DFE9F6"),
-                    BorderThickness = new Thickness(1), Margin = new Thickness(0,0,0,16) });
-                var groupTitle = IFCInfoWindow.Text((isRound ? "Ống gió tròn" : "Ống gió chữ nhật") + " · " + groupItems.Count + " đoạn", 20, "#102A50");
-                groupTitle.FontWeight = FontWeights.SemiBold;
-                settings.Children.Add(groupTitle);
-                var typeBox = UiDesign.Field(settings, "Duct Type", "Chọn loại ống cho nhóm này", "Chọn Duct Type...", false);
-                var availableTypes = isRound ? roundTypes : rectangularTypes;
-                typeBox.ItemsSource = availableTypes;
-                if (availableTypes.Count == 1) typeBox.SelectedIndex = 0;
-                var savedType = availableTypes.FirstOrDefault(t => t.Id == (isRound ? saved.RoundTypeId : saved.RectangularTypeId));
-                if (savedType != null) typeBox.SelectedItem = savedType;
-                if (isRound) round = typeBox; else rectangular = typeBox;
-                foreach (var sourceGroup in groupItems.GroupBy(item => item.Source.SystemType ?? "").OrderBy(group => group.Key))
-                {
-                    string sourceType = sourceGroup.Key;
-                    var box = UiDesign.Field(settings,
-                        "System Type: " + (string.IsNullOrEmpty(sourceType) ? "Không có thông tin" : sourceType),
-                        sourceGroup.Count() + " đoạn · Chọn System Type tương ứng trong Revit",
-                        "Chọn System Type...", true);
-                    box.ItemsSource = systems;
-                    box.SelectedItem = systems.FirstOrDefault(type => string.Equals(type.Name, sourceType, StringComparison.OrdinalIgnoreCase));
-                    mapping.Add(DuctRequest.SystemKey(isRound, sourceType), box);
-                    var savedSystem = saved.Systems.FirstOrDefault(m => m.Key == DuctRequest.SystemKey(isRound, sourceType));
-                    if (savedSystem != null && systems.Any(t=>t.Id == savedSystem.Id)) box.SelectedItem = systems.First(t=>t.Id == savedSystem.Id);
-                }
+                foreach(var editor in editors.Values)
+                    editor.Visibility=editor.Label.IndexOf(groupSearch.Text.Trim(),StringComparison.OrdinalIgnoreCase)>=0 ? Visibility.Visible : Visibility.Collapsed;
+            };
+            var groups = items.GroupBy(i => i.GroupKey).OrderBy(g => g.Key).ToList();
+            foreach (var group in groups)
+            {
+                var first = group.First();
+                var available = first.Round ? roundTypes : first.Oval ? (ovalTypes ?? new List<DuctChoice>()) : rectangularTypes;
+                var editor = new DuctGroupEditor(group.Key, first.ShapeKey, first.Source.SystemType, group.Count(), available, systems, saved, groups.Count == 1);
+                editors.Add(group.Key, editor);
+                groupsBody.Children.Add(editor);
             }
             var levelMapping = new Dictionary<string, ComboBox>();
+            var manualLevel = new CheckBox { Content="Manual · Ánh xạ Level nguồn sang Level đích", IsChecked=saved.Levels.Any(m=>m.Id>0), Margin=new Thickness(0,16,0,8) };
+            body.Children.Add(manualLevel);
+            body.Children.Add(IFCInfoWindow.Text("Tắt Manual: tự chọn Level dưới cao độ ống. Đường tim IFC được giữ nguyên.",12,"#716B63"));
+            manualLevel.Checked += (s,e) => { foreach(var box in levelMapping.Values) box.IsEnabled=true; };
+            manualLevel.Unchecked += (s,e) => { foreach(var box in levelMapping.Values) box.IsEnabled=false; };
             foreach (var key in items.Select(i=>i.LevelKey ?? "Không có Level nguồn").Distinct())
             {
                 var box = UiDesign.Field(body, "Level nguồn: " + key, "Tự động chọn Level dưới cao độ ống hoặc ánh xạ Level đích", "Level", false);
@@ -101,12 +105,13 @@ namespace IFCInfo
                 box.ItemsSource = choices;
                 box.SelectedItem = choices.FirstOrDefault(c=>c.Id == saved.Levels.FirstOrDefault(m=>m.Key == key)?.Id) ?? choices[0];
                 levelMapping[key] = box;
+                box.IsEnabled=manualLevel.IsChecked==true;
             }
             var worksetMapping = new Dictionary<string, ComboBox>();
             if (worksets.Count > 0)
-            foreach (var key in mapping.Keys)
+            foreach (var key in editors.Keys)
             {
-                var box = UiDesign.Field(body, "Workset: " + key, "Ánh xạ theo nhóm tiết diện và hệ thống", "Workset", false);
+                var box = UiDesign.Field(body, "Workset: " + editors[key].Label, "Ánh xạ theo nhóm tiết diện và hệ thống", "Workset", false);
                 var choices = new List<DuctChoice> { new DuctChoice { Id = 0, Name = "Workset hiện hành / giữ Workset khi cập nhật" } }; choices.AddRange(worksets);
                 box.ItemsSource = choices;
                 box.SelectedItem = choices.FirstOrDefault(c=>c.Id == saved.Worksets.FirstOrDefault(m=>m.Key == key)?.Id) ?? choices[0];
@@ -117,16 +122,21 @@ namespace IFCInfo
             var remember = new CheckBox { Content = "Lưu ánh xạ trong dự án Revit", IsChecked = true, Margin = new Thickness(0,16,0,8) };
             var fittings = new CheckBox { Content = "Nối đầu ống: elbow, transition, tee", Margin = new Thickness(0,8,0,8) };
             var terminals = new CheckBox { Content = "Nối miệng gió trong model chính tại đầu ống (tối đa 1 mm)", Margin = new Thickness(0,8,0,8) };
+            foreach(var option in new[] { manualLevel, remember, fittings, terminals })
+                option.Content=IFCInfoWindow.Text((string)option.Content,13,"#37322B");
             body.Children.Add(remember); body.Children.Add(fittings); body.Children.Add(terminals);
-            body.Children.Add(IFCInfoWindow.Text("Khoảng hở tối đa cho elbow/transition (mm). Để 1 nếu chỉ nối các đầu gặp nhau; tăng nếu cho phép Revit điều chỉnh đầu ống.",13,"#526880"));
+            body.Children.Add(IFCInfoWindow.Text("Khoảng hở tối đa cho elbow/transition (mm). Để 1 nếu chỉ nối các đầu gặp nhau; tăng nếu cho phép Revit điều chỉnh đầu ống.",13,"#716B63"));
             var gap=new TextBox { Text="1",Width=100,HorizontalAlignment=HorizontalAlignment.Left,Margin=new Thickness(0,8,0,8) }; body.Children.Add(gap);
             var preview = new DataGrid { ItemsSource = items, AutoGenerateColumns = false, CanUserAddRows = false, CanUserDeleteRows = false, Height = 190, Margin = new Thickness(0,16,0,8) };
             preview.Columns.Add(new DataGridCheckBoxColumn { Header = "Thực hiện", Binding = new System.Windows.Data.Binding("Include")
                 { Mode = System.Windows.Data.BindingMode.TwoWay, UpdateSourceTrigger = System.Windows.Data.UpdateSourceTrigger.PropertyChanged } });
             preview.Columns.Add(new DataGridTextColumn { Header = "Nguồn IFC", Binding = new System.Windows.Data.Binding("PreviewSource"), IsReadOnly=true });
+            preview.Columns.Add(new DataGridTextColumn { Header = "Shape", Binding = new System.Windows.Data.Binding("ShapeName"), IsReadOnly=true });
+            preview.Columns.Add(new DataGridTextColumn { Header = "System Type IFC", Binding = new System.Windows.Data.Binding("PreviewSystem"), IsReadOnly=true });
             preview.Columns.Add(new DataGridTextColumn { Header = "Duct đích", Binding = new System.Windows.Data.Binding("PreviewTarget"), IsReadOnly=true });
             preview.Columns.Add(new DataGridTextColumn { Header = "Thay đổi", Binding = new System.Windows.Data.Binding("PreviewChange"), IsReadOnly=true });
-            body.Children.Add(preview);
+            UiDesign.StyleTable(preview);
+            groupsBody.Children.Add(preview);
             Action refreshSelection = () =>
             {
                 int count = items.Count(i => i.Include);
@@ -142,11 +152,11 @@ namespace IFCInfo
             foreach (var item in items) item.PropertyChanged += selectionChanged;
             Closed += (s, e) => { foreach (var item in items) item.PropertyChanged -= selectionChanged; };
             refreshSelection();
-            var note = IFCInfoWindow.Text("Fitting dùng Routing Preferences. Chỉ nối cặp đầu ống có nghiệm duy nhất; tee cần 3 đầu gặp nhau, không tự chia ống. System Name IFC lưu trong Comments.", 13, "#526880");
+            var note = IFCInfoWindow.Text("Fitting dùng Routing Preferences. Chỉ nối cặp đầu ống có nghiệm duy nhất; tee cần 3 đầu gặp nhau, không tự chia ống. System Name IFC lưu trong Comments.", 13, "#716B63");
             note.Margin = new Thickness(2,16,2,8); body.Children.Add(note);
             if (issues.Count > 0)
             {
-                body.Children.Add(new SkippedDuctsPanel(issues));
+                groupsBody.Children.Add(new SkippedDuctsPanel(issues));
                 var exportIssues=IFCInfoWindow.Button("Xuất CSV các nguồn bị bỏ qua",false);
                 exportIssues.Click+=(s,e)=>
                 {
@@ -157,7 +167,7 @@ namespace IFCInfo
                     }
                     catch (Exception ex) { feedback.Text=ex.Message; }
                 };
-                body.Children.Add(exportIssues);
+                groupsBody.Children.Add(exportIssues);
             }
             create.Click += (s, e) =>
             {
@@ -167,22 +177,28 @@ namespace IFCInfo
                 { feedback.Text="Khoảng hở fitting phải từ 1 đến 1000 mm."; return; }
                 var selected = items.Where(i => i.Include).ToList();
                 if (selected.Count == 0) { feedback.Text = "Chọn ít nhất một dòng trong bảng xem trước."; return; }
-                bool needsRound = selected.Any(i => i.Round), needsRectangular = selected.Any(i => !i.Round);
-                var systemKeys = new HashSet<string>(selected.Select(i => DuctRequest.SystemKey(i.Round, i.Source.SystemType)));
+                bool needsRound = selected.Any(i => i.Round), needsRectangular = selected.Any(i => !i.Round && !i.Oval);
+                var systemKeys = new HashSet<string>(selected.Select(i => i.GroupKey));
                 var levelKeys = new HashSet<string>(selected.Select(i => i.LevelKey ?? "Không có Level nguồn"));
-                if ((needsRound && round?.SelectedItem == null) || (needsRectangular && rectangular?.SelectedItem == null)
-                    || systemKeys.Any(key => mapping[key].SelectedItem == null))
+                foreach (var key in systemKeys)
                 {
-                    feedback.Text = "Chọn đủ Duct Type và System Type. Nếu danh sách trống, hãy nạp type vào model chính rồi chạy lại.";
-                    return;
+                    string error = editors[key].Validate();
+                    if (error != null) { feedback.Text = error; groupSearch.Text=""; editors[key].IsExpanded = true; editors[key].BringIntoView(); return; }
                 }
+                var newSystems = editors.Where(p => systemKeys.Contains(p.Key) && p.Value.NewSystem != null)
+                    .ToDictionary(p => p.Key, p => p.Value.NewSystem);
+                foreach (var group in newSystems.Values.GroupBy(n => n.Name, StringComparer.OrdinalIgnoreCase))
+                    if (group.Select(n => n.TemplateId + "|" + (n.TemplateId > 0 ? "" : n.Classification)).Distinct().Count() > 1)
+                    { feedback.Text = "System Type mới '" + group.Key + "' có thiết lập khác nhau giữa các nhóm. Chọn cùng mẫu/phân loại hoặc đổi tên."; return; }
                 Request = new DuctRequest
                 {
                     Items = selected,
-                    RoundTypeId = needsRound ? ((DuctChoice)round.SelectedItem).Id : 0,
-                    RectangularTypeId = needsRectangular ? ((DuctChoice)rectangular.SelectedItem).Id : 0,
-                    SystemTypes = mapping.Where(p => systemKeys.Contains(p.Key)).ToDictionary(p => p.Key, p => ((DuctChoice)p.Value.SelectedItem).Id),
-                    Levels = levelMapping.Where(p => levelKeys.Contains(p.Key)).ToDictionary(p => p.Key, p => ((DuctChoice)p.Value.SelectedItem).Id),
+                    RoundTypeId = needsRound ? ((DuctChoice)editors[selected.First(i => i.Round).GroupKey].TypeBox.SelectedItem).Id : 0,
+                    RectangularTypeId = needsRectangular ? ((DuctChoice)editors[selected.First(i => !i.Round && !i.Oval).GroupKey].TypeBox.SelectedItem).Id : 0,
+                    DuctTypes = editors.Where(p => systemKeys.Contains(p.Key)).ToDictionary(p => p.Key, p => ((DuctChoice)p.Value.TypeBox.SelectedItem).Id),
+                    SystemTypes = editors.Where(p => systemKeys.Contains(p.Key)).ToDictionary(p => p.Key, p => p.Value.NewSystem != null ? 0 : ((DuctChoice)p.Value.SystemBox.SelectedItem).Id),
+                    NewSystems = newSystems,
+                    Levels = levelMapping.Where(p => levelKeys.Contains(p.Key)).ToDictionary(p => p.Key, p => manualLevel.IsChecked==true ? ((DuctChoice)p.Value.SelectedItem).Id : 0),
                     Worksets = worksetMapping.Where(p => systemKeys.Contains(p.Key)).ToDictionary(p => p.Key, p => ((DuctChoice)p.Value.SelectedItem).Id),
                     KeepSuccessful = policy.SelectedIndex == 1, SaveSettings = remember.IsChecked == true,
                     CreateFittings = fittings.IsChecked == true, ConnectTerminals = terminals.IsChecked == true,

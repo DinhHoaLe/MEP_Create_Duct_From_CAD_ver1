@@ -45,6 +45,11 @@ namespace IFCInfo
         public string Name { get; set; }
         public string SystemType { get; set; }
         public string SystemName { get; set; }
+        public string NativeShape { get; set; }
+        public string Shape => !string.IsNullOrEmpty(NativeShape) ? NativeShape :
+            DuctSource?.ProfileShape == "Oval" ? "Oval" : DuctSource?.DiameterMm > 0 ? "Tròn" :
+            DuctSource?.WidthMm > 0 && DuctSource.HeightMm > 0 ?
+                (Math.Abs(DuctSource.WidthMm - DuctSource.HeightMm) <= 0.1 ? "Vuông" : "Chữ nhật") : "Chưa xác định";
         public string IfcGuid { get; set; }
         public string Elevation { get; set; }
         public string DataSource { get; set; }

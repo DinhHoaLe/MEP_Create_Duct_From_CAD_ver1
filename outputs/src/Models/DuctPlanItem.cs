@@ -10,6 +10,11 @@ namespace IFCInfo
         public double Width, Height, Diameter;
         public string Key;
         public bool Round => Diameter > 0;
+        public bool Oval;
+        public string ShapeKey => Round ? "Round" : Oval ? "Oval" : System.Math.Abs(Width - Height) <= 0.1 / 304.8 ? "Square" : "Rectangular";
+        public string ShapeName => DuctRequest.ShapeLabel(ShapeKey);
+        public string GroupKey => DuctRequest.SystemKey(ShapeKey, Source?.SystemType);
+        public string PreviewSystem => Source?.SystemType;
         public long ExistingId;
         public string LevelKey, ChangeSummary;
         private bool include = true;

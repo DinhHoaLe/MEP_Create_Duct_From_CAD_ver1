@@ -36,6 +36,7 @@ namespace IFCInfo
             if (!x.Skip(9).SequenceEqual(y.Skip(9))) changes.Add("W/H/D (mm): "+Point(x,9)+" → "+Point(y,9));
             if (a[1]!=b[1]) changes.Add("System Type: "+a[1]+" → "+b[1]);
             if (a[2]!=b[2]) changes.Add("System Name: "+a[2]+" → "+b[2]);
+            if (!a.Skip(3).SequenceEqual(b.Skip(3))) changes.Add("Đổi loại tiết diện");
             return string.Join("; ",changes);
         }
         private static string Point(string[] values,int offset) => string.Join(", ",values.Skip(offset).Take(3)

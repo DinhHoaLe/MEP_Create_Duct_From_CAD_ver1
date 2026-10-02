@@ -14,7 +14,7 @@ namespace IFCInfo
             string.Join(";", new[] { a.X,a.Y,a.Z,b.X,b.Y,b.Z,x.X,x.Y,x.Z,w,h,d }
                 .Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
         internal static string Source(DuctPlanItem i) => Geometry(i.Start,i.End,i.WidthAxis,i.Width,i.Height,i.Diameter)
-            + "|" + i.Source.SystemType + "|" + i.Source.SystemName;
+            + "|" + i.Source.SystemType + "|" + i.Source.SystemName + (i.Oval ? "|Oval" : "");
         internal static string Actual(Duct d)
         {
             var line = (d.Location as LocationCurve)?.Curve as Line;

@@ -44,6 +44,8 @@ internal static class Program
                 TestMainReviewLayout();
                 TestIndependentMinimize();
                 TestNativeCurves();
+                TestDuctGroups();
+                TestLoading();
                 Console.WriteLine("PASS: " + checks + " WPF regression checks.");
                 return 0;
             }
@@ -54,6 +56,9 @@ internal static class Program
             }
             string output = Path.GetFullPath(args[0]);
             Directory.CreateDirectory(output);
+            var sourceWindow = new IFCInfoWindow();
+            Render(sourceWindow, output, "ifc-source.png", 1100, 790);
+            sourceWindow.Close();
             foreach(string kind in new[] { "Pipe","CableTray" })
             {
                 long category=kind=="Pipe"?(long)Autodesk.Revit.DB.BuiltInCategory.OST_PipeCurves:(long)Autodesk.Revit.DB.BuiltInCategory.OST_CableTray;
@@ -91,11 +96,22 @@ internal static class Program
             reviewWindow.Close(); reviewMain.Close();
             var items = new List<DuctPlanItem> { Item("123", false, "Supply Air", "Level 1") };
             var settings = Settings(items, false, Choices());
-            Render(settings, output, "duct-settings.png", 900, 690);
+            Render(settings, output, "duct-settings.png", 1200, 760);
             Descendants(settings).OfType<ScrollViewer>().First().ScrollToEnd();
-            Render(settings, output, "duct-settings-options.png", 900, 690);
-            Render(settings, output, "duct-settings-compact.png", 620, 440);
+            Render(settings, output, "duct-settings-options.png", 1200, 760);
+            Render(settings, output, "duct-settings-compact.png", 900, 540);
             settings.Close();
+            var square=Item("124",false,"Supply Air","Level 2"); square.Height=square.Width;
+            var oval=Item("126",false,"Exhaust IFC","Level 3"); oval.Oval=true;
+            var batch=new DuctCreationWindow(new List<DuctPlanItem> { items[0],square,Item("125",true,"Supply Air","Level 1"),oval },
+                new List<string>(),Choices(),Choices(),Choices(),Choices(),Choices(),new DuctSettingsData(),false,Choices());
+            Render(batch,output,"duct-batch-groups.png",1200,760);
+            var ovalGroup=Descendants(batch).OfType<Expander>().Single(x=>x.Header.ToString().Contains("Oval"));
+            ovalGroup.IsExpanded=true; batch.UpdateLayout();
+            Descendants(ovalGroup).OfType<CheckBox>().Single(x=>x.Name=="CreateNewSystem").IsChecked=true;
+            batch.UpdateLayout();
+            Descendants(ovalGroup).OfType<ComboBox>().Single(x=>x.Name=="SystemClassification").SelectedItem="ExhaustAir";
+            Render(batch,output,"duct-new-system.png",1200,900); batch.Close();
 
             var rows = new List<DuctRunRow> {
                 new DuctRunRow { SourceId = "123", IfcGuid = "sample-guid", TargetId = "456", Status = "Đã tạo", Success = true }
@@ -239,8 +255,8 @@ internal static class Program
         var grids=Descendants(page).OfType<DataGrid>().ToList();
         var source=grids.Single(g=>g.Name!="IfcPropertyValues");
         var headers=source.Columns.Select(c=>c.Header as string).ToList();
-        Assert(!headers.Contains("System Type") && !headers.Contains("System Name") && !headers.Contains("Cao độ (mm)"),
-            "Main source table must leave system and elevation details to Properties");
+        Assert(headers.Contains("System Type") && headers.Contains("System Name") && headers.Contains("Shape"),
+            "Step 2 must show source systems and section shape");
         source.SelectedItem=row;
         var buttons=Descendants(main).OfType<Button>().Concat(Descendants(page).OfType<Button>()).Distinct().ToList();
         var zoom=buttons.Single(b=>(b.ToolTip as string)=="Zoom tới nguồn IFC");
@@ -338,6 +354,69 @@ internal static class Program
         Assert(propertyPanel.AllPropertyValues().Contains("System Name\t<varies>"),"Copy includes aggregated property values");
         page.RaiseEvent(new RoutedEventArgs(FrameworkElement.UnloadedEvent));
         main.Close();
+    }
+
+    private static void TestLoading()
+    {
+        var owner = new Window { Width=500, Height=300, Opacity=0, ShowInTaskbar=false };
+        owner.Show();
+        var type=typeof(IFCInfoWindow).Assembly.GetType("IFCInfo.LoadingWindow",true);
+        var busy=(IDisposable)type.GetMethod("ShowWhile",BindingFlags.Static|BindingFlags.NonPublic)
+            .Invoke(null,new object[] { owner,"Đang kiểm tra","Kiểm tra trạng thái chờ" });
+        Assert(!owner.IsEnabled,"Loading prevents duplicate user actions");
+        busy.Dispose();
+        Assert(owner.IsEnabled,"Loading restores input after completion");
+        owner.Close();
+    }
+
+    private static void TestDuctGroups()
+    {
+        var round=Item("1",true,"Supply Air","L1");
+        var square=Item("2",false,"Supply Air","L1"); square.Height=square.Width;
+        var rect=Item("3",false,"Supply Air","L1");
+        var exhaust=Item("4",false,"NEW EXHAUST","L1");
+        var oval=Item("5",false,"Supply Air","L1"); oval.Oval=true;
+        var items=new List<DuctPlanItem> { round,square,rect,exhaust,oval };
+        Assert(items.Select(i=>i.GroupKey).Distinct().Count()==5,"Separate shape and system combinations");
+        Assert(new AirTerminalRow { DuctSource=new IfcTerminalSource { WidthMm=200,HeightMm=200 } }.Shape=="Vuông","Recognize square IFC sections");
+        Assert(new AirTerminalRow().Shape=="Chưa xác định","Do not infer missing section metadata");
+        var rectTypes=new List<DuctChoice> { new DuctChoice { Id=20,Name="Rect A" },new DuctChoice { Id=21,Name="Rect B" } };
+        var window=new DuctCreationWindow(items,new List<string>(),new List<DuctChoice> { new DuctChoice { Id=10,Name="Round" } },
+            rectTypes,Choices(),Choices(),new List<DuctChoice>(),new DuctSettingsData(),false,
+            new List<DuctChoice> { new DuctChoice { Id=30,Name="Oval" } });
+        window.Opacity=0; window.ShowInTaskbar=false;
+        Exception failure=null;
+        window.Loaded+=(s,e)=>window.Dispatcher.BeginInvoke(new Action(()=>
+        {
+            try
+            {
+                var groups=Descendants(window).OfType<Expander>().Where(x=>x.GetType().Name=="DuctGroupEditor").ToList();
+                Assert(groups.Count==5,"One editor per shape/system group");
+                foreach(var group in groups) group.IsExpanded=true;
+                window.UpdateLayout();
+                foreach(var group in groups)
+                {
+                    var type=Descendants(group).OfType<ComboBox>().Single(x=>x.Name=="GroupDuctType");
+                    if(type.Items.Count==2) type.SelectedIndex=group.Header.ToString().StartsWith("Vuông")?1:0;
+                }
+                var newGroup=groups.Single(x=>x.Header.ToString().Contains("NEW EXHAUST"));
+                Descendants(newGroup).OfType<CheckBox>().Single(x=>x.Name=="CreateNewSystem").IsChecked=true;
+                window.UpdateLayout();
+                var submit=Descendants(window).OfType<Button>().Single(x=>(x.Content as string)=="Tạo 5 Duct");
+                submit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert(window.Request==null,"New systems require explicit classification");
+                Descendants(newGroup).OfType<ComboBox>().Single(x=>x.Name=="SystemClassification").SelectedItem="ExhaustAir";
+                submit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var request=window.Request;
+                Assert(request!=null && request.DuctTypes.Count==5,"Submit all selected groups in one request");
+                Assert(request.DuctTypes[square.GroupKey]==21 && request.DuctTypes[rect.GroupKey]==20 && request.DuctTypes[oval.GroupKey]==30,"Preserve per-group type assignments including square and oval");
+                Assert(request.NewSystems.Count==1 && request.NewSystems[exhaust.GroupKey].Classification=="ExhaustAir","Carry the new system plan without mutating the model in UI");
+                Assert(request.SystemTypes[exhaust.GroupKey]==0 && request.SystemTypes[round.GroupKey]==7,"Keep pending and existing systems distinct");
+            }
+            catch(Exception ex) { failure=ex; }
+            finally { window.Close(); }
+        }),DispatcherPriority.ApplicationIdle);
+        window.ShowDialog(); if(failure!=null) throw failure;
     }
 
     private static void TestSelection(bool updating)

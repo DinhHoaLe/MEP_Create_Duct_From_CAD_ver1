@@ -69,7 +69,8 @@ namespace IFCInfo
                     Height = Size(duct, BuiltInParameter.RBS_CURVE_HEIGHT_PARAM),
                     Diameter = Size(duct, BuiltInParameter.RBS_CURVE_DIAMETER_PARAM),
                     WidthAxis = Coordinates(duct.ConnectorManager.Connectors.Cast<Connector>().First(c=>c.ConnectorType==ConnectorType.End).CoordinateSystem.BasisX),
-                    UnsupportedShape = duct.DuctType.Shape != ConnectorProfileType.Round && duct.DuctType.Shape != ConnectorProfileType.Rectangular,
+                    Oval = duct.DuctType.Shape == ConnectorProfileType.Oval,
+                    UnsupportedShape = duct.DuctType.Shape != ConnectorProfileType.Round && duct.DuctType.Shape != ConnectorProfileType.Rectangular && duct.DuctType.Shape != ConnectorProfileType.Oval,
                     SystemTypeId = duct.get_Parameter(BuiltInParameter.RBS_DUCT_SYSTEM_TYPE_PARAM)?.AsElementId().Number() ?? -1
                 });
             }
@@ -84,7 +85,8 @@ namespace IFCInfo
                     var geometry = DuctGeometryReader.Read(source, row.DuctSource);
                     string key = link.UniqueId + "|" + (string.IsNullOrWhiteSpace(row.IfcGuid) ? source.UniqueId : row.IfcGuid) + "|" + (row.SystemType ?? "");
                     long? expectedSystem = null;
-                    var configured = settings.Systems.FirstOrDefault(m => m.Key == DuctRequest.SystemKey(geometry.Round, row.SystemType));
+                    var configured = settings.Systems.FirstOrDefault(m => m.Key == DuctRequest.SystemKey(geometry.ShapeKey, row.SystemType))
+                        ?? (geometry.Oval ? null : settings.Systems.FirstOrDefault(m => m.Key == DuctRequest.SystemKey(geometry.Round, row.SystemType)));
                     if (configured != null && systemTypes.Any(t => t.Id.Number() == configured.Id)) expectedSystem = configured.Id;
                     else if (savedMappings.TryGetValue(key, out var mappedIds))
                     {
@@ -98,7 +100,7 @@ namespace IFCInfo
                     }
                     var result = DuctCoverage.CheckDetails(Coordinates(transform.OfPoint(geometry.Start)),
                         Coordinates(transform.OfPoint(geometry.End)), ducts, 1.0 / 304.8,
-                        geometry.Width, geometry.Height, geometry.Diameter, expectedSystem,Coordinates(transform.OfVector(geometry.WidthAxis).Normalize()));
+                        geometry.Width, geometry.Height, geometry.Diameter, expectedSystem,Coordinates(transform.OfVector(geometry.WidthAxis).Normalize()),geometry.Oval);
                     row.CorrespondingDuctIds = result.Ids;
                     row.DuctExistence = incomplete && !result.FullyCovered ? "Chưa xác định" : result.Status;
                     row.DuctExistenceDetail = "Đối chiếu đường tim, kích thước (sai số 1 mm) và hướng tiết diện. Hệ thống so theo System Type đích; System Name IFC lưu riêng, không dùng tên hệ thống tự sinh của Revit." +

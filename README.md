@@ -2,6 +2,10 @@
 
 Add-in C# cho Revit 2024, .NET Framework 4.8, x64: đọc IFC link, tạo/cập nhật Duct và tạo Air Terminal trong model chính.
 
+## Gói gửi cho người dùng Revit 2024
+
+Chạy `pwsh -NoProfile -File tools/Package-RevitAddin.ps1` để build và tạo `release/IFCInfo-Revit2024.zip`. Gửi file ZIP này; người nhận giải nén toàn bộ, đóng Revit, nhấn đúp `Install.cmd`, rồi mở Revit 2024 → Add-Ins → External Tools → IFC Info. Trình cài đặt chỉ cài cho tài khoản Windows hiện tại, không cần quyền Administrator hay pyRevit. Xem `HUONG_DAN.txt` trong ZIP.
+
 ## Cấu trúc
 
 - `outputs/IFCInfo.csproj`: dự án add-in; mã nguồn trong `outputs/src/`.

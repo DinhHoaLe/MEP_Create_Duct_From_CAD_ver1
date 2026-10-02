@@ -1,4 +1,4 @@
-param([string]$RevitApiDir = 'C:\Program Files\Autodesk\Revit 2023')
+param([string]$RevitApiDir = 'C:\Program Files\Autodesk\Revit 2024')
 $ErrorActionPreference = 'Stop'
 $project = Join-Path $PSScriptRoot '../../tools/UiPreview/UiPreview.csproj'
 & dotnet build $project -c Release --nologo -v minimal "-p:RevitApiDir=$RevitApiDir"

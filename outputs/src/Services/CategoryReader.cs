@@ -94,11 +94,16 @@ namespace IFCInfo
                     foreach (Element element in terminals)
                     {
                         string guid = ReadIfcGuid(element);
+                        var connector = (element as MEPCurve)?.ConnectorManager.Connectors.Cast<Connector>()
+                            .FirstOrDefault(c => c.ConnectorType == ConnectorType.End);
                         var row = new AirTerminalRow
                         {
                             ElementId = element.Id.ToString(),
                             Name = element.Name,
                             IfcGuid = guid,
+                            NativeShape = connector == null ? null : connector.Shape == ConnectorProfileType.Round ? "Tròn" :
+                                connector.Shape == ConnectorProfileType.Oval ? "Oval" : connector.Shape == ConnectorProfileType.Rectangular ?
+                                (Math.Abs(connector.Width - connector.Height) <= 0.1 / 304.8 ? "Vuông" : "Chữ nhật") : null,
                             SystemType = ReadSystemValue(element, category.Id==(long)BuiltInCategory.OST_PipeCurves
                                 ? BuiltInParameter.RBS_PIPING_SYSTEM_TYPE_PARAM : BuiltInParameter.RBS_DUCT_SYSTEM_TYPE_PARAM, "System Type"),
                             SystemName = ReadSystemValue(element, BuiltInParameter.RBS_SYSTEM_NAME_PARAM, "System Name"),

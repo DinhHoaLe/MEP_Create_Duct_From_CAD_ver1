@@ -23,6 +23,9 @@ namespace IFCInfo
             };
             Func<List<AirTerminalRow>, bool, DuctRequest> prepare = (rows, updating) =>
             {
+                DuctCreationWindow dialog;
+                using (LoadingWindow.ShowWhile(window, "Đang chuẩn bị nhóm ống", "Kiểm tra đường tim, tiết diện và các loại hệ thống trong Revit…"))
+                {
                 var items = new List<DuctPlanItem>();
                 var issues = new List<string>();
                 var existing = DuctCreation.ExistingKeys(doc);
@@ -74,14 +77,16 @@ namespace IFCInfo
                 var types = new FilteredElementCollector(doc).OfClass(typeof(DuctType)).Cast<DuctType>().ToList();
                 var systems = new FilteredElementCollector(doc).OfClass(typeof(MechanicalSystemType)).Cast<MechanicalSystemType>()
                     .OrderBy(t => t.Name).Select(t => new DuctChoice { Id = t.Id.Number(), Name = t.Name }).ToList();
-                var dialog = new DuctCreationWindow(items, issues,
+                dialog = new DuctCreationWindow(items, issues,
                     types.Where(t => t.Shape == ConnectorProfileType.Round).Select(t => new DuctChoice { Id = t.Id.Number(), Name = t.Name }).ToList(),
                     types.Where(t => t.Shape == ConnectorProfileType.Rectangular).Select(t => new DuctChoice { Id = t.Id.Number(), Name = t.Name }).ToList(), systems,
                     new FilteredElementCollector(doc).OfClass(typeof(Level)).Cast<Level>().OrderBy(l=>l.ProjectElevation)
                         .Select(l=>new DuctChoice { Id=l.Id.Number(), Name=l.Name }).ToList(),
                     doc.IsWorkshared ? new FilteredWorksetCollector(doc).OfKind(WorksetKind.UserWorkset)
                         .Select(w=>new DuctChoice { Id=w.Id.IntegerValue, Name=w.Name }).ToList() : new List<DuctChoice>(),
-                    DuctProjectSettings.Load(doc), updating);
+                    DuctProjectSettings.Load(doc), updating,
+                    types.Where(t => t.Shape == ConnectorProfileType.Oval).Select(t => new DuctChoice { Id = t.Id.Number(), Name = t.Name }).ToList());
+                }
                 dialog.Owner = window;
                 if (dialog.ShowDialog()!=true) return null;
                 foreach (var skipped in dialog.Request.Skipped)

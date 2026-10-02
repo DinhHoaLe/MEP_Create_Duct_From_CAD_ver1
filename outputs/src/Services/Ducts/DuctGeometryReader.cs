@@ -20,16 +20,17 @@ namespace IFCInfo
             if (native != null && line != null)
             {
                 var connector = native.ConnectorManager.Connectors.Cast<Connector>().First(c => c.ConnectorType == ConnectorType.End);
-                if (connector.Shape != ConnectorProfileType.Round && connector.Shape != ConnectorProfileType.Rectangular)
-                    throw new NotSupportedException("Chưa hỗ trợ tiết diện oval.");
+                if (connector.Shape != ConnectorProfileType.Round && connector.Shape != ConnectorProfileType.Rectangular && connector.Shape != ConnectorProfileType.Oval)
+                    throw new NotSupportedException("Không xác định được tiết diện ống nguồn.");
                 return new DuctPlanItem
                 {
                     Start = line.GetEndPoint(0),
                     End = line.GetEndPoint(1),
                     WidthAxis = connector.CoordinateSystem.BasisX,
                     Diameter = connector.Shape == ConnectorProfileType.Round ? connector.Radius * 2 : 0,
-                    Width = connector.Shape == ConnectorProfileType.Rectangular ? connector.Width : 0,
-                    Height = connector.Shape == ConnectorProfileType.Rectangular ? connector.Height : 0
+                    Oval = connector.Shape == ConnectorProfileType.Oval,
+                    Width = connector.Shape != ConnectorProfileType.Round ? connector.Width : 0,
+                    Height = connector.Shape != ConnectorProfileType.Round ? connector.Height : 0
                 };
             }
             if (expected == null)
@@ -58,7 +59,8 @@ namespace IFCInfo
                     continue;
                 bool round = expected.DiameterMm > 0;
                 double width = expected.WidthMm / 304.8, height = expected.HeightMm / 304.8, diameter = expected.DiameterMm / 304.8;
-                if (round != a.Round || round != b.Round)
+                bool oval = expected.ProfileShape == "Oval";
+                if (round != a.Round || round != b.Round || oval != a.Oval || oval != b.Oval)
                     continue;
                 XYZ axis = a.Axis;
                 if (round)
@@ -73,7 +75,8 @@ namespace IFCInfo
                     if (!Near(a.Width, width))
                         axis = a.Normal.CrossProduct(axis).Normalize();
                 }
-                double volume = (round ? Math.PI * diameter * diameter / 4 : width * height) * length;
+                double minor = Math.Min(width,height), major = Math.Max(width,height);
+                double volume = (round ? Math.PI * diameter * diameter / 4 : oval ? (major-minor)*minor+Math.PI*minor*minor/4 : width * height) * length;
                 if (Math.Abs(solid.Volume - volume) > Math.Max(volume * 0.001, 1e-8))
                     continue;
                 matches.Add(new DuctPlanItem
@@ -83,7 +86,8 @@ namespace IFCInfo
                     WidthAxis = axis,
                     Width = width,
                     Height = height,
-                    Diameter = diameter
+                    Diameter = diameter,
+                    Oval = oval
                 });
             }
             if (matches.Count != 1)
@@ -95,7 +99,7 @@ namespace IFCInfo
             (Near(p.Width, w) && Near(p.Height, h)) || (Near(p.Width, h) && Near(p.Height, w));
         private sealed class Profile
         {
-            public XYZ Center, Normal, Axis; public double Width, Height; public bool Round;
+            public XYZ Center, Normal, Axis; public double Width, Height; public bool Round, Oval;
         }
         private static Profile EndProfile(PlanarFace face)
         {
@@ -119,6 +123,18 @@ namespace IFCInfo
                 };
             }
             var lines = edges.OfType<Line>().ToList();
+            if (arcs.Count == 2 && lines.Count == 2 && edges.Count == 4)
+            {
+                var a=arcs[0]; var b=arcs[1];
+                double separation=a.Center.DistanceTo(b.Center), minor=2*a.Radius;
+                if (separation<=Tolerance || !Near(a.Radius,b.Radius) ||
+                    !Near(a.Length,Math.PI*a.Radius) || !Near(b.Length,Math.PI*b.Radius)) return null;
+                XYZ majorAxis=(b.Center-a.Center).Normalize();
+                if (lines.Any(l=>!Near(l.Length,separation) || Math.Abs(l.Direction.DotProduct(majorAxis))<1-1e-7)) return null;
+                double area=separation*minor+Math.PI*a.Radius*a.Radius;
+                if (Math.Abs(face.Area-area)>Math.Max(1e-8,area*.001)) return null;
+                return new Profile { Oval=true, Center=(a.Center+b.Center)/2, Normal=face.FaceNormal, Axis=majorAxis, Width=separation+minor, Height=minor };
+            }
             if (lines.Count != 4 || edges.Count != 4)
                 return null;
             XYZ axis = lines[0].Direction;
