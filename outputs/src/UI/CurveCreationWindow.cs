@@ -12,7 +12,7 @@ namespace IFCInfo
         public CurveCreationWindow(List<AirTerminalRow> rows,List<ReplacementTypeOption> types,
             List<ReplacementLevelOption> levels,List<ReplacementTypeOption> systems,long categoryId,string kind)
         {
-            string label=kind=="Pipe"?"Pipe":"Cable Tray";
+            string label=kind=="Pipe"?"Pipe":kind=="Conduit"?"Conduit":"Cable Tray";
             Title="Bước 3 · Tạo "+label+" từ IFC"; Width=900; Height=690; MinWidth=620; MinHeight=440;
             MaxHeight=SystemParameters.WorkArea.Height; WindowStartupLocation=WindowStartupLocation.CenterOwner;
             Background=UiDesign.Background; FontFamily=new System.Windows.Media.FontFamily("Segoe UI"); FontSize=14;
@@ -34,23 +34,23 @@ namespace IFCInfo
             root.Children.Add(UiDesign.SettingsColumns(options,body));
             body.Children.Add(new Border { Background=IFCInfoWindow.Brush("#E8E2DA"),CornerRadius=new CornerRadius(10),Padding=new Thickness(18,12,18,12),Margin=new Thickness(0,0,0,16),
                 Child=IFCInfoWindow.Text("Đã chọn: "+rows.Count+" đoạn · Kiểm tra hình học khi tạo",16,"#6F6044") });
-            var settings=new StackPanel { Margin=new Thickness(22,18,22,22) };
+            var settings=new StackPanel { Margin=new Thickness(16,12,16,14) };
             body.Children.Add(new Border { Child=settings,Background=System.Windows.Media.Brushes.White,CornerRadius=new CornerRadius(16),BorderBrush=IFCInfoWindow.Brush("#DDD6CE"),BorderThickness=new Thickness(1) });
             settings.Children.Add(IFCInfoWindow.Text(label+" · "+rows.Count+" đoạn",20,"#37322B"));
-            var type=UiDesign.Field(settings,label+" Type","Type cùng Category trong model chính","Chọn Type",false); type.Name="CurveType";
+            var type=UiDesign.Field(settings,label+" Type","Type cùng Category trong model chính","Chọn Type",false,true); type.Name="CurveType";
             type.ItemsSource=types.Where(t=>t.CategoryId==categoryId && t.Kind==kind && t.Supported).ToList(); if(type.Items.Count==1) type.SelectedIndex=0;
             var mappings=new Dictionary<string,ComboBox>();
             if(kind=="Pipe") foreach(string key in rows.Select(r=>r.SystemType??"").Distinct())
             {
-                var box=UiDesign.Field(settings,"System Type: "+(key==""?"Không có thông tin":key),"Ánh xạ IFC sang Piping System Type","Chọn hệ thống",false);
+                var box=UiDesign.Field(settings,"System Type: "+(key==""?"Không có thông tin":key),"Ánh xạ IFC sang Piping System Type","Chọn hệ thống",false,true);
                 box.ItemsSource=systems.Where(t=>t.Kind=="Pipe").ToList(); if(box.Items.Count==1) box.SelectedIndex=0; mappings[key]=box;
             }
             body=options;
-            var level=UiDesign.Field(body,"Level đích","Áp dụng cho các đoạn đã chọn; giữ cao độ đường tim IFC","Chọn Level",false);
+            var level=UiDesign.Field(body,"Level đích","Áp dụng cho các đoạn đã chọn; giữ cao độ đường tim IFC","Chọn Level",false,true);
             level.ItemsSource=levels; if(level.Items.Count>0) level.SelectedIndex=0;
-            var policy=UiDesign.Field(body,"Khi có lỗi","Cách xử lý lượt tạo "+label,"Chọn cách xử lý",false);
+            var policy=UiDesign.Field(body,"Khi có lỗi","Cách xử lý lượt tạo "+label,"Chọn cách xử lý",false,true);
             policy.ItemsSource=new[] { "Hoàn tác toàn bộ","Bỏ qua lỗi, giữ phần thành công" }; policy.SelectedIndex=0;
-            body.Children.Add(IFCInfoWindow.Text(kind=="Pipe"?"Đường tim và đường kính lấy từ IFC. Chưa tự nối fitting.":"Đường tim, chiều rộng, chiều cao và hướng tiết diện lấy từ IFC. Chưa tự nối fitting.",13,"#716B63"));
+            body.Children.Add(IFCInfoWindow.Text(kind!="CableTray"?"Đường tim và đường kính lấy từ IFC. Chưa tự nối fitting.":"Đường tim, chiều rộng, chiều cao và hướng tiết diện lấy từ IFC. Chưa tự nối fitting.",13,"#716B63"));
             var preview=new DataGrid { ItemsSource=rows,Name="CurvePreview",AutoGenerateColumns=false,IsReadOnly=true,CanUserAddRows=false,CanUserDeleteRows=false,Height=190,Margin=new Thickness(0,16,0,8) };
             foreach(var column in new[] { new[] { "Nguồn IFC","ElementId" },new[] { "Phần tử","Name" },new[] { "System Type","SystemType" },new[] { "Cao độ (mm)","Elevation" } })
                 preview.Columns.Add(new DataGridTextColumn { Header=column[0],Binding=new Binding(column[1]),Width=new DataGridLength(1,DataGridLengthUnitType.Star) });

@@ -1,11 +1,11 @@
 $ErrorActionPreference='Stop'
-[void][Reflection.Assembly]::LoadFrom('C:/Program Files/Autodesk/Revit 2024/RevitAPI.dll')
+[void][Reflection.Assembly]::LoadFrom('C:/Program Files/Autodesk/Revit 2023/RevitAPI.dll')
 $published=Resolve-Path "$PSScriptRoot/../IFCInfo.dll"
 $built=Resolve-Path "$PSScriptRoot/../bin/Release/net48/IFCInfo.dll"
 if ((Get-FileHash $published).Hash -ne (Get-FileHash $built).Hash) { throw 'Published DLL does not match current build' }
 $a=[Reflection.Assembly]::LoadFrom($published)
 $api=$a.GetReferencedAssemblies() | Where-Object Name -eq 'RevitAPI'
-if ($api.Version.Major -ne 24) { throw 'DLL must target Revit 2024' }
+if ($api.Version.Major -ne 23) { throw 'DLL must target Revit 2023' }
 $helper=$a.GetType('IFCInfo.ElementIds')
 $create=$helper.GetMethod('Create',[Reflection.BindingFlags]'Static,NonPublic')
 $number=$helper.GetMethod('Number',[Reflection.BindingFlags]'Static,NonPublic')
