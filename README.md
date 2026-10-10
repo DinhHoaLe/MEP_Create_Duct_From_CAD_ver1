@@ -1,35 +1,46 @@
-# MEP_Create_Duct_From_IFC_ver1
+# MEP_Create_Duct_From_CAD_ver1
 
-Add-in C# cho Revit 2024, .NET Framework 4.8, x64: đọc IFC link, tạo/cập nhật Duct và tạo Air Terminal trong model chính.
+Independent Revit 2023/2024 (.NET Framework 4.8) command, moved from the Place Element From CAD project.
+This project reads CAD imports/links to create Revit ducts.
 
-## Gói gửi cho người dùng Revit 2024
+## Build and load
 
-Chạy `pwsh -NoProfile -File tools/Package-RevitAddin.ps1` để build và tạo `release/IFCInfo-Revit2024.zip`. Gửi file ZIP này; người nhận giải nén toàn bộ, đóng Revit, nhấn đúp `Install.cmd`, rồi mở Revit 2024 → Add-Ins → External Tools → IFC Info. Trình cài đặt chỉ cài cho tài khoản Windows hiện tại, không cần quyền Administrator hay pyRevit. Xem `HUONG_DAN.txt` trong ZIP.
-
-## Cấu trúc
-
-- `outputs/IFCInfo.csproj`: dự án add-in; mã nguồn trong `outputs/src/`.
-- `outputs/IFCInfo.dll`: DLL phát hành, cập nhật sau khi build và kiểm tra thành công.
-- `outputs/tests/`: kiểm tra reader, chống trùng, snapshot, connector và WPF.
-- `tools/UiPreview/`: xem trước giao diện IFC/Duct và kiểm tra hồi quy WPF, không thao tác model.
-- `tools/CadInspection/`: công cụ phụ đọc CAD/DXF, xem `tools/README.md`.
-
-Dự án này không chứa CableTrayFromCad; công cụ IFC không phụ thuộc dự án Cable Tray bên cạnh.
-
-## Hướng dẫn và kiểm tra
-
-Xem [hướng dẫn sử dụng hiện tại](outputs/HUONG_DAN_CSHARP.txt), [phạm vi IFC](outputs/IFC_COMPATIBILITY.md), [đối chiếu Duct](outputs/DUCT_COMPARISON.md) và [ghi chú sửa lỗi](outputs/CHANGELOG.md).
-
-Chạy từ thư mục gốc bằng PowerShell 7:
+Run in this folder:
 
 ```powershell
-dotnet build outputs/IFCInfo.csproj -c Release
-pwsh -NoProfile -File outputs/tests/Test-IfcReader.ps1
-pwsh -NoProfile -File outputs/tests/Test-DuctCoverage.ps1
-pwsh -NoProfile -File outputs/tests/Test-DuctEnhancements.ps1
-pwsh -NoProfile -File outputs/tests/Test-DuctUi.ps1
+.\Build.ps1 -RevitVersion 2023
+.\Build.ps1 -RevitVersion 2024
 ```
 
-Cần cài Revit 2024 và .NET Framework 4.8 Developer Pack. Khi Revit nằm ở vị trí khác, truyền `-p:RevitApiDir="đường dẫn Revit 2024"` vào lệnh build. Các test logic cần PowerShell 7; kiểm tra WPF chạy bằng executable .NET Framework trên Windows.
+Output: `bin/Release/Revit<year>/net48/CreateDuctFromCad.dll`.
+Add-In Manager entry: `CadLayerTools.CreateDuctFromCad`.
+Choose the DLL matching your Revit version.
 
-Chức năng tạo/cập nhật và nối connector có sửa model. Test ngoài Revit không thay thế nghiệm thu trên RVT thử nghiệm; xem checklist trong `outputs/TIEN_DO_7_BUOC.md`.
+To register under Revit External Tools:
+
+```powershell
+.\Install.ps1 -RevitVersion 2023
+```
+
+Use 2024 instead for Revit 2024, then restart Revit. The manifest uses absolute DLL paths in this folder.
+Keep this folder in place. Do not register the same command through multiple manifests.
+
+## Workflow
+
+Select the source model and CAD import/link, then choose a layer, analyze boundaries and configure round ducts.
+The route table and overall bar show progress. Changes commit as one transaction; failed batches roll back.
+After completion, choose whether to view/export the report. Return to the same configuration window and
+continue with another layer. Cancel closes the session. Use Revit Undo to undo a committed batch.
+Fittings are not connected automatically. UI messages use English; model-provided names keep their original text.
+
+## Project boundaries
+
+This project has its own source, artwork, build, install and manifest. It does not require the Place project.
+Equipment placement, CAD block preview, family preview, equipment services and their command are excluded.
+The source namespace stays `CadLayerTools` for compatibility; assembly name is `CreateDuctFromCad`.
+Build output and local test/diagnostic files are ignored by Git.
+
+## Git
+
+Existing remote: `https://github.com/DinhHoaLe/MEP_Create_Duct_From_IFC_ver1.git`.
+Existing IFC-file deletions were left as found during migration. No commit or push is performed by migration.
